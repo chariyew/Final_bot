@@ -12,7 +12,7 @@ from telegram.ext import (
 # ================= НАСТРОЙКИ =================
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHANNEL_USERNAME = "@https://t.me/Nejim_bot"
+CHANNEL_USERNAME = "@Nejim Crypto Bot"
 ADMIN_ID = 8039171205
 FREE_LIMIT = 5
 
