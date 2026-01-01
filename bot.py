@@ -11,7 +11,7 @@ from telegram.ext import (
 
 # ================= НАСТРОЙКИ =================
 
-TELEGRAM_TOKEN = os.getenv("BOT_TOKEN")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHANNEL_USERNAME = "@NejimChannel"
 ADMIN_ID = 8039171205
 FREE_LIMIT = 5
