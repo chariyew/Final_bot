@@ -1,29 +1,23 @@
+import os
 import random
 from datetime import date
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes
-)
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# ================== НАСТРОЙКИ ==================
-TELEGRAM_TOKEN = "7981684997:AAEKMuYLDKYIxenSZgSJ39mfwAJPOLS2_fY"
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHANNEL_USERNAME = "@nejim_signals"
 ADMIN_ID = 8039171205
 FREE_LIMIT = 5
 
 PAIRS = [
-    "AUDCAD", "EURUSD", "USDCHF", "CADJPY", "CHFJPY",
-    "EURJPY", "AUDUSD", "AUDJPY", "EURCAD", "EURGBP",
-    "GBPUSD", "GBPCAD", "EURAUD", "GBPCHF", "AUDCHF"
+    "AUDCAD","EURUSD","USDCHF","CADJPY","CHFJPY",
+    "EURJPY","AUDUSD","AUDJPY","EURCAD","EURGBP",
+    "GBPUSD","GBPCAD","EURAUD","GBPCHF","AUDCHF"
 ]
 
 premium_users = set()
 user_signals = {}
 
-# ================== SIGNAL ==================
 def generate_signal():
     pair = random.choice(PAIRS)
     entry = round(random.uniform(1.1000, 1.1500), 4)
@@ -47,21 +41,18 @@ def generate_signal():
         f"⚠️ Не финансовый совет"
     )
 
-# ================== SUB CHECK ==================
 async def is_subscribed(user_id, context):
     try:
         member = await context.bot.get_chat_member(CHANNEL_USERNAME, user_id)
-        return member.status in ("member", "administrator", "creator")
+        return member.status in ["member","administrator","creator"]
     except:
         return False
 
-# ================== /start ==================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📊 Получить сигнал", callback_data="signal")],
         [InlineKeyboardButton("📢 Наш канал", url=f"https://t.me/{CHANNEL_USERNAME[1:]}")]
     ]
-
     await update.message.reply_text(
         "👋 Привет, брат!\n\n"
         "🔥 FREE — 5 сигналов в день\n"
@@ -70,56 +61,33 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ================== SIGNAL BUTTON ==================
 async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     user_id = query.from_user.id
 
     if not await is_subscribed(user_id, context):
-        await query.message.reply_text(
-            "❌ Подпишись на канал!",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Подписаться", url=f"https://t.me/{CHANNEL_USERNAME[1:]}")]
-            ])
-        )
+        await query.message.reply_text("❌ Подпишись на канал")
         return
 
     today = date.today()
-    if user_id not in user_signals or user_signals[user_id]["date"] != today:
+    user_signals.setdefault(user_id, {"date": today, "count": 0})
+
+    if user_signals[user_id]["date"] != today:
         user_signals[user_id] = {"date": today, "count": 0}
 
     if user_id not in premium_users and user_signals[user_id]["count"] >= FREE_LIMIT:
-        await query.message.reply_text("❌ Лимит 5 сигналов. 💎 PREMIUM — без лимита")
+        await query.message.reply_text("❌ Лимит исчерпан")
         return
 
     user_signals[user_id]["count"] += 1
     await query.message.reply_text(generate_signal())
 
-# ================== PREMIUM ==================
-async def add_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Нет доступа")
-        return
-
-    if not context.args:
-        await update.message.reply_text("Используй: /add_premium USER_ID")
-        return
-
-    user_id = int(context.args[0])
-    premium_users.add(user_id)
-    await update.message.reply_text(f"✅ {user_id} теперь PREMIUM")
-
-# ================== MAIN ==================
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("add_premium", add_premium))
     app.add_handler(CallbackQueryHandler(signal, pattern="signal"))
-
-    print("✅ BOT STABLE & RUNNING")
+    print("🚀 BOT RUNNING 24/7")
     app.run_polling()
 
 if __name__ == "__main__":
