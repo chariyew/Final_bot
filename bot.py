@@ -10,7 +10,7 @@ from telegram.ext import (
     ContextTypes
 )
 
-# ========== ЛОГИРОВАНИЕ ==========
+# ========== ЛОГИ ==========
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
@@ -72,7 +72,7 @@ async def is_subscribed(user_id, context):
     except:
         return False
 
-# ========== КРАСИВОЕ МЕНЮ ==========
+# ========== МЕНЮ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     known_users.add(user.id)
@@ -107,12 +107,10 @@ async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     user_id = query.from_user.id
 
-    # антиспам
     if is_spam(user_id):
         await query.message.reply_text("⏳ Подожди пару секунд...")
         return
 
-    # проверка подписки
     if not await is_subscribed(user_id, context):
         await query.message.reply_text(
             "❌ Подпишись на канал!",
@@ -122,7 +120,6 @@ async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # админ без лимита
     if user_id != ADMIN_ID:
         today = date.today()
         if user_id not in user_signals or user_signals[user_id]["date"] != today:
@@ -134,7 +131,6 @@ async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user_signals[user_id]["count"] += 1
 
-    # отправка сигнала
     text, image = generate_signal()
     await context.bot.send_photo(
         chat_id=query.message.chat_id,
@@ -142,7 +138,7 @@ async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption=text
     )
 
-# ========== КУПИТЬ PREMIUM ==========
+# ========== PREMIUM ==========
 async def buy_premium_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -159,19 +155,6 @@ async def buy_premium_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     ]
 
     await query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-
-# ========== PREMIUM КОМАНДА ==========
-async def add_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Нет доступа")
-        return
-
-    try:
-        user_id = int(context.args[0])
-        premium_users.add(user_id)
-        await update.message.reply_text(f"✅ {user_id} теперь PREMIUM")
-    except:
-        await update.message.reply_text("Используй: /add_premium USER_ID")
 
 # ========== СТАТИСТИКА ==========
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -218,29 +201,24 @@ async def auto_signals(app):
 
         await asyncio.sleep(AUTO_SIGNAL_INTERVAL)
 
-
 # ========== MAIN ==========
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("add_premium", add_premium))
     app.add_handler(CommandHandler("stats", stats))
 
     app.add_handler(CallbackQueryHandler(signal, pattern="^signal$"))
     app.add_handler(CallbackQueryHandler(buy_premium_callback, pattern="^buy_premium$"))
 
-async def on_start(app):
-    asyncio.create_task(auto_signals(app))
+    async def on_start(app):
+        asyncio.create_task(auto_signals(app))
 
-app.post_init = on_start
-
+    app.post_init = on_start
 
     print("🚀 BOT FULL POWER STARTED")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
-
-
 
