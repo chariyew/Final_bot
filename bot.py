@@ -198,19 +198,26 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== АВТОСИГНАЛЫ 24/7 ==========
 async def auto_signals(app):
-    await asyncio.sleep(10)
+    await asyncio.sleep(5)
+
     while True:
         try:
             text, image = generate_signal()
+
             await app.bot.send_photo(
                 chat_id=CHANNEL_USERNAME,
                 photo=open(image, "rb"),
-                caption=text
+                caption=text,
+                disable_notification=False
             )
+
+            print("Автосигнал отправлен!")
+
         except Exception as e:
-            logger.error(f"Auto-signal error: {e}")
+            print("Ошибка автосигнала:", e)
 
         await asyncio.sleep(AUTO_SIGNAL_INTERVAL)
+
 
 # ========== MAIN ==========
 def main():
@@ -223,10 +230,11 @@ def main():
     app.add_handler(CallbackQueryHandler(signal, pattern="^signal$"))
     app.add_handler(CallbackQueryHandler(buy_premium_callback, pattern="^buy_premium$"))
 
-    async def on_start(app):
-        asyncio.create_task(auto_signals(app))
+async def on_start(app):
+    asyncio.create_task(auto_signals(app))
 
-    app.post_init = on_start
+app.post_init = on_start
+
 
     print("🚀 BOT FULL POWER STARTED")
     app.run_polling()
