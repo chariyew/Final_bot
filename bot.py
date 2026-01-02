@@ -9,7 +9,7 @@ from telegram.ext import (
 )
 
 # ================== НАСТРОЙКИ ==================
-TELEGRAM_TOKEN = "PASTE_REAL_TOKEN"
+TELEGRAM_TOKEN = "7981684997:AAEKMuYLDKYIxenSZgSJ39mfwAJPOLS2_fY"
 CHANNEL_USERNAME = "@nejim_signals"
 ADMIN_ID = 8039171205
 FREE_LIMIT = 5
