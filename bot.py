@@ -24,6 +24,29 @@ def generate_signal():
 
     if random.choice([True, False]):
         direction = "BUY 📈"
+        image = "above.jpg"
+        tp = round(entry + 0.0060, 4)
+        sl = round(entry - 0.0030, 4)
+    else:
+        direction = "SELL 📉"
+        image = "below.jpg"
+        tp = round(entry - 0.0060, 4)
+        sl = round(entry + 0.0030, 4)
+
+    text = (
+        f"📊 TRADING SIGNAL\n\n"
+        f"Пара: {pair}\n"
+        f"Тип: {direction}\n\n"
+        f"Вход: {entry}\n"
+        f"TP: {tp}\n"
+        f"SL: {sl}\n\n"
+        f"⚠️ Не финансовый совет"
+    )
+
+    return text, image
+
+    if random.choice([True, False]):
+        direction = "BUY 📈"
         tp = round(entry + 0.0060, 4)
         sl = round(entry - 0.0030, 4)
     else:
