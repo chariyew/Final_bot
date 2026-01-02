@@ -138,19 +138,38 @@ async def auto_signals(app: Application):
         await asyncio.sleep(AUTO_SIGNAL_INTERVAL)
 
 # ========== MAIN ==========
-async def main():
+
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("add_premium", add_premium))
     app.add_handler(CallbackQueryHandler(signal, pattern="signal"))
 
-    asyncio.create_task(auto_signals(app))
+    
 
     print("🚀 BOT FULL POWER 24/7 STARTED")
-    await app.run_polling()
+   from telegram.ext import Application
+import asyncio
+
+# --- в конце файла ---
+
+def main():
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("add_premium", add_premium))
+    app.add_handler(CallbackQueryHandler(signal, pattern="signal"))
+
+    # 🔥 автосигналы через post_init
+    async def on_start(app: Application):
+        asyncio.create_task(auto_signals(app))
+
+    app.post_init = on_start
+
+    print("🚀 BOT FULL POWER 24/7 STARTED")
+    app.run_polling()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
+
 
