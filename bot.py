@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 # ========== НАСТРОЙКИ ==========
-TELEGRAM_TOKEN = "PASTE_REAL_TOKEN_HERE"
+TELEGRAM_TOKEN = "7981684997:AAEKMuYLDKYIxenSZgSJ39mfwAJPOLS2_fY"
 CHANNEL_USERNAME = "@nejim_signals"
 ADMIN_ID = 8039171205
 
