@@ -9,11 +9,10 @@ from telegram.ext import (
 )
 
 # ================== НАСТРОЙКИ ==================
-TELEGRAM_TOKEN = "PASTE_YOUR_REAL_TOKEN_HERE"
+TELEGRAM_TOKEN = "PASTE_REAL_TOKEN"
 CHANNEL_USERNAME = "@nejim_signals"
 ADMIN_ID = 8039171205
 FREE_LIMIT = 5
-AUTO_SIGNAL_INTERVAL = 30  # минут
 
 PAIRS = [
     "AUDCAD", "EURUSD", "USDCHF", "CADJPY", "CHFJPY",
@@ -24,7 +23,7 @@ PAIRS = [
 premium_users = set()
 user_signals = {}
 
-# ================== SIGNAL GENERATOR ==================
+# ================== SIGNAL ==================
 def generate_signal():
     pair = random.choice(PAIRS)
     entry = round(random.uniform(1.1000, 1.1500), 4)
@@ -98,7 +97,7 @@ async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_signals[user_id]["count"] += 1
     await query.message.reply_text(generate_signal())
 
-# ================== ADD PREMIUM ==================
+# ================== PREMIUM ==================
 async def add_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Нет доступа")
@@ -112,13 +111,6 @@ async def add_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     premium_users.add(user_id)
     await update.message.reply_text(f"✅ {user_id} теперь PREMIUM")
 
-# ================== AUTO SIGNAL TO CHANNEL ==================
-async def auto_signal(context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(
-        chat_id=CHANNEL_USERNAME,
-        text=generate_signal()
-    )
-
 # ================== MAIN ==================
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -127,14 +119,7 @@ def main():
     app.add_handler(CommandHandler("add_premium", add_premium))
     app.add_handler(CallbackQueryHandler(signal, pattern="signal"))
 
-    # 🔥 AUTO SIGNAL JOB
-    app.job_queue.run_repeating(
-        auto_signal,
-        interval=AUTO_SIGNAL_INTERVAL * 60,
-        first=10
-    )
-
-    print("🚀 BOT STARTED SUCCESSFULLY")
+    print("✅ BOT STABLE & RUNNING")
     app.run_polling()
 
 if __name__ == "__main__":
