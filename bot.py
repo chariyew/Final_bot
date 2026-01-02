@@ -124,7 +124,7 @@ def main():
     app.add_handler(CommandHandler("add_premium", add_premium))
     app.add_handler(CallbackQueryHandler(signal, pattern="signal"))
 
-    app.job_queue.run_repeating(
+    (
         auto_signal,
         interval=AUTO_SIGNAL_INTERVAL * 60,
         first=10
