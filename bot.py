@@ -18,12 +18,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ========== НАСТРОЙКИ ==========
-TELEGRAM_TOKEN = "7981684997:AAEKMuYLDKYIxenSZgSJ39mfwAJPOLS2_fY"   # ВСТАВЬ СВОЙ ТОКЕН
-CHANNEL_USERNAME = "@nejim_signals"        # ТВОЙ КАНАЛ
-ADMIN_ID = 8039171205                      # ТВОЙ ID
+TELEGRAM_TOKEN = "7981684997:AAEKMuYLDKYIxenSZgSJ39mfwAJPOLS2_fY"
+CHANNEL_USERNAME = "@nejim_signals"
+ADMIN_ID = 8039171205
 
 FREE_LIMIT = 5
-AUTO_SIGNAL_INTERVAL = 300  # 5 минут
+AUTO_SIGNAL_INTERVAL = 300
 ANTISPAM_SECONDS = 5
 
 PAIRS = [
@@ -44,12 +44,10 @@ def generate_signal():
 
     if random.choice([True, False]):
         direction = "BUY 📈"
-        image = "above.jpg"
         tp = round(entry + 0.0060, 4)
         sl = round(entry - 0.0030, 4)
     else:
         direction = "SELL 📉"
-        image = "below.jpg"
         tp = round(entry - 0.0060, 4)
         sl = round(entry + 0.0030, 4)
 
@@ -62,7 +60,7 @@ def generate_signal():
         f"SL: {sl}\n\n"
         f"⚠️ Не финансовый совет"
     )
-    return text, image
+    return text
 
 # ========== ПРОВЕРКА ПОДПИСКИ ==========
 async def is_subscribed(user_id, context):
@@ -90,7 +88,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Нажми кнопку ниже, чтобы получить сигнал 👇"
     )
 
-    await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+    if update.message:
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await update.callback_query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 # ========== АНТИСПАМ ==========
 def is_spam(user_id):
@@ -131,11 +132,10 @@ async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user_signals[user_id]["count"] += 1
 
-    text, image = generate_signal()
-    await context.bot.send_photo(
+    text = generate_signal()
+    await context.bot.send_message(
         chat_id=query.message.chat_id,
-        photo=open(image, "rb"),
-        caption=text
+        text=text
     )
 
 # ========== PREMIUM ==========
@@ -185,19 +185,18 @@ async def auto_signals(app):
 
     while True:
         try:
-            text, image = generate_signal()
+            text = generate_signal()
 
-            await app.bot.send_photo(
+            await app.bot.send_message(
                 chat_id=CHANNEL_USERNAME,
-                photo=open(image, "rb"),
-                caption=text,
+                text=text,
                 disable_notification=False
             )
 
             print("Автосигнал отправлен!")
 
         except Exception as e:
-            print("Ошибка автосигнала:", e)
+            logger.error(f"Auto-signal error: {e}")
 
         await asyncio.sleep(AUTO_SIGNAL_INTERVAL)
 
