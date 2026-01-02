@@ -15,7 +15,7 @@ CHANNEL_USERNAME = "@nejim_signals"
 ADMIN_ID = 8039171205
 
 FREE_LIMIT = 5
-AUTO_SIGNAL_INTERVAL = 300  # 5 минут (300 сек)
+AUTO_SIGNAL_INTERVAL = 300  # 5 минут
 
 PAIRS = [
     "AUDCAD", "EURUSD", "USDCHF", "CADJPY", "CHFJPY",
@@ -138,21 +138,6 @@ async def auto_signals(app: Application):
         await asyncio.sleep(AUTO_SIGNAL_INTERVAL)
 
 # ========== MAIN ==========
-
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("add_premium", add_premium))
-    app.add_handler(CallbackQueryHandler(signal, pattern="signal"))
-
-    
-
-    print("🚀 BOT FULL POWER 24/7 STARTED")
-   from telegram.ext import Application
-import asyncio
-
-# --- в конце файла ---
-
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
@@ -160,7 +145,6 @@ def main():
     app.add_handler(CommandHandler("add_premium", add_premium))
     app.add_handler(CallbackQueryHandler(signal, pattern="signal"))
 
-    # 🔥 автосигналы через post_init
     async def on_start(app: Application):
         asyncio.create_task(auto_signals(app))
 
@@ -171,5 +155,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
