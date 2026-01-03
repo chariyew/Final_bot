@@ -27,15 +27,14 @@ class TradingViewClient:
                     continue
 
                 if isinstance(data, list) and len(data) > 2:
-                    if "lp" in str(data):
-                        try:
-                            self.price = float(
-    str(data).split("lp")[1].split(":")[1].split(",")[0]
-)
+    if "lp" in str(data):
+        try:
+            self.price = float(
+                str(data).split("lp")[1].split(":")[1].split(",")[0]
+            )
+        except:
+            pass
 
-                            )
-                        except:
-                            pass
 
                 await asyncio.sleep(0.01)
 
