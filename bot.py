@@ -21,10 +21,26 @@ class TradingViewClient:
 
             while True:
                 msg = await ws.recv()
-                # тут парсишь цену и пишешь в self.price
-                ...
+
+                try:
+                    data = json.loads(msg)
+                except:
+                    continue
+
+                if isinstance(data, list) and len(data) > 2:
+                    if "lp" in str(data):
+                        try:
+                            self.price = float(
+                                str(data).split("lp")[1].split(":")[1].split(",")[0]
+                            )
+                        except:
+                            pass
+
+                await asyncio.sleep(0.01)
+
     def get_price(self):
         return self.price
+
 
 
 # ================== НАСТРОЙКИ ==================
