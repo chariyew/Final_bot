@@ -20,7 +20,7 @@ class TradingViewClient:
             ]))
 
             while True:
-                msg = await ws.recv()
+                msg = await ...
 
                 try:
                     data = json.loads(msg)
