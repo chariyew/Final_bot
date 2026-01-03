@@ -1,73 +1,65 @@
+
 import asyncio
-import json
-import websockets
+import logging
+from datetime import date, datetime, timedelta
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes
+)
 
-class TradingViewClient:
-    def __init__(self, symbol):
-        self.symbol = symbol
-        self.price = None
+# ========== ЛОГИ ==========
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
+from datetime import datetime, timedelta
 
-    async def connect(self):
-        url = "wss://data.tradingview.com/socket.io/websocket"
+from telegram import Bot
 
-        async with websockets.connect(url) as ws:
-            session = "qs_" + self.symbol.replace("/", "_")
-
-            await ws.send(json.dumps([
-                1,
-                "quote_add_symbols",
-                {"symbols": [self.symbol], "session": session}
-            ]))
-
-            while True:
-                msg = await ws.recv()
-
-                try:
-                    data = json.loads(msg)
-                except:
-                    continue
-
-                if isinstance(data, list) and len(data) > 2:
-                    if "lp" in str(data):
-                        try:
-                            self.price = float(
-                                str(data)
-                                .split("lp")[1]
-                                .split(":")[1]
-                                .split(",")[0]
-                            )
-                        except:
-                            pass
-
-                await asyncio.sleep(0.01)
-
-    def get_price(self):
-        return self.price
-
-
-# ================== НАСТРОЙКИ ==================
-
-TELEGRAM_TOKEN = "7981684997:AAFMrrmmiAY9gTeH1zWoq_A0FX19cCugLKw"  # ВСТАВЬ СВОЙ ТОКЕН
+# ========== НАСТРОЙКИ ==========
+TELEGRAM_TOKEN = "7981684997:AAEKMuYLDKYIxenSZgSJ39mfwAJPOLS2_fY"
+CHANNEL_USERNAME = "@nejim_signals"
 ADMIN_ID = 8039171205
 
+FREE_LIMIT = 5
+AUTO_SIGNAL_INTERVAL = 300
+ANTISPAM_SECONDS = 5
 CHECK_INTERVAL = 5
 DOGON_DELAY = 300
 
-PHOTO_UP = "FILE_ID_VYSHE"
-PHOTO_DOWN = "FILE_ID_NIZHE"
-
-# ================== СПИСОК ПАР ==================
-
+# ========== 25 ПАР ==========
 PAIRS = [
     "AUDCAD", "EURUSD", "USDCHF", "CADJPY", "CHFJPY",
     "EURJPY", "AUDUSD", "AUDJPY", "EURCAD", "EURGBP",
+    "GBPUSD", "GBPCAD", "EURAUD", "GBPCHF", "AUDCHF"
     "GBPUSD", "GBPCAD", "EURAUD", "GBPCHF", "AUDCHF",
     "NZDUSD", "USDJPY", "EURCHF", "AUDNZD", "NZDCAD",
     "NZDCHF", "CADCHF", "GBPJPY", "EURNZD", "USDHKD"
 ]
 
-# ================== УРОВНИ MAX/MIN ==================
+premium_users = set()
+user_signals = {}
+user_last_click = {}
+known_users = set()
 
+# ========== ГЕНЕРАЦИЯ СИГНАЛА ==========
+def generate_signal():
+    pair = random.choice(PAIRS)
+    entry = round(random.uniform(1.1000, 1.1500), 4)
+
+    if random.choice([True, False]):
+        direction = "BUY 📈"
+        tp = round(entry + 0.0060, 4)
+        sl = round(entry - 0.0030, 4)
+    else:
+        direction = "SELL 📉"
+        tp = round(entry - 0.0060, 4)
+        sl = round(entry + 0.0030, 4)
+# ========== УРОВНИ MAX/MIN ==========
 LEVELS = {
     "EURUSD": {"MAX": 1.1500, "MIN": 1.1000},
     "GBPUSD": {"MAX": 1.3200, "MIN": 1.2700},
@@ -96,191 +88,250 @@ LEVELS = {
     "USDHKD": {"MAX": 7.8500, "MIN": 7.8000},
 }
 
-# ================== ЛОГИ ==================
-
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-)
-logger = logging.getLogger(__name__)
+# ========== КАРТИНКИ ==========
+PHOTO_UP = "FILE_ID_VYSHE"
+PHOTO_DOWN = "FILE_ID_NIZHE"
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# ================== TRADINGVIEW КЛИЕНТЫ ==================
+# ========== ЗАГЛУШКА ЦЕНЫ ==========
+async def get_price(pair):
+    return LEVELS[pair]["MIN"]  # завтра заменим на TradingView
 
-clients = {}
-
-async def start_tradingview():
-    print("Запуск TradingView...")
-    for pair in PAIRS:
-        client = TradingViewClient(pair)
-        clients[pair] = client
-        asyncio.create_task(client.connect())
-
-async def get_price(pair: str) -> Optional[float]:
-    client = clients.get(pair)
-    if client:
-        return client.get_price()
-    return None
-
-# ================== СТРУКТУРА СИГНАЛА ==================
-
+# ========== СТРУКТУРА СИГНАЛА ==========
 class Signal:
-    def __init__(self, pair: str, direction: str, level: float):
+    def __init__(self, pair, direction, level):
         self.pair = pair
         self.direction = direction
         self.level = level
-        self.dogon_step = 1
+        self.dogon = 0
         self.active = True
         self.entry_time = datetime.utcnow()
 
-current_signal: Optional[Signal] = None
+current_signal = None
 
-# ================== ОТПРАВКА СИГНАЛА ==================
-
-async def send_signal(pair: str, direction: str, level: float):
+# ========== ОТПРАВКА СИГНАЛА ==========
+async def send_signal(pair, direction, level):
     global current_signal
 
-    signal_type = "ВЫШЕ" if direction == "UP" else "НИЖЕ"
-    photo = PHOTO_UP if direction == "UP" else PHOTO_DOWN
+    text = (
+        f"📊 TRADING SIGNAL\n\n"
+        f"💎 УРОВНЕВОЙ СИГНАЛ\n"
+        f"Пара: {pair}\n"
+        f"Тип: {direction}\n\n"
+        f"Вход: {entry}\n"
+        f"TP: {tp}\n"
+        f"SL: {sl}\n\n"
+        f"⚠️ Не финансовый совет"
+        f"Тип: {'ВЫШЕ' if direction=='UP' else 'НИЖЕ'}\n"
+        f"Уровень: {level}\n"
+        f"Догон: 1/3\n"
+    )
+    return text
+
+# ========== ПРОВЕРКА ПОДПИСКИ ==========
+async def is_subscribed(user_id, context):
+    try:
+        member = await context.bot.get_chat_member(CHANNEL_USERNAME, user_id)
+        return member.status in ["member", "administrator", "creator"]
+    except:
+        return False
+
+# ========== МЕНЮ ==========
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    known_users.add(user.id)
+
+    keyboard = [
+        [InlineKeyboardButton("📊 Получить сигнал", callback_data="signal")],
+        [InlineKeyboardButton("💎 Купить Premium", callback_data="buy_premium")],
+        [InlineKeyboardButton("📢 Наш канал", url="https://t.me/nejim_signals")]
+    ]
 
     text = (
-        f"💎 УРОВНЕВОЙ СИГНАЛ\n"
-        f"━━━━━━━━━━━━━━\n"
-        f"📊 Пара: {pair}\n"
-        f"📌 Тип: {signal_type}\n"
-        f"💰 Уровень входа: {level}\n"
-        f"🔥 Догон: 1/3\n"
-        f"━━━━━━━━━━━━━━\n"
-        f"⚠️ Не финансовый совет\n"
-        f"@nejim_signals"
+        "👋 Привет!\n\n"
+        "🔥 FREE — 5 сигналов в день\n"
+        "💎 PREMIUM — без лимита\n\n"
+        "Нажми кнопку ниже, чтобы получить сигнал 👇"
     )
+    photo = PHOTO_UP if direction == "UP" else PHOTO_DOWN
 
+    if update.message:
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await update.callback_query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+# ========== АНТИСПАМ ==========
+def is_spam(user_id):
+    now = datetime.utcnow()
+    last = user_last_click.get(user_id)
+    if last and now - last < timedelta(seconds=ANTISPAM_SECONDS):
+        return True
+    user_last_click[user_id] = now
+    return False
+
+# ========== СИГНАЛ ПО КНОПКЕ ==========
+async def signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+
+    if is_spam(user_id):
+        await query.message.reply_text("⏳ Подожди пару секунд...")
+        return
+    await bot.send_message(chat_id=ADMIN_ID, text=text)
+
+    if not await is_subscribed(user_id, context):
+        await query.message.reply_text(
+            "❌ Подпишись на канал!",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📢 Подписаться", url="https://t.me/nejim_signals")]
+            ])
+        )
+        return
+
+    if user_id != ADMIN_ID:
+        today = date.today()
+        if user_id not in user_signals or user_signals[user_id]["date"] != today:
+            user_signals[user_id] = {"date": today, "count": 0}
     current_signal = Signal(pair, direction, level)
 
-    try:
-        if PHOTO_UP != "FILE_ID_VYSHE":
-            await bot.send_photo(chat_id=ADMIN_ID, photo=photo, caption=text)
-        else:
-            await bot.send_message(chat_id=ADMIN_ID, text=text)
-    except:
-        await bot.send_message(chat_id=ADMIN_ID, text=text)
-
-# ================== ДОГОН ==================
-
+        if user_signals[user_id]["count"] >= FREE_LIMIT:
+            await query.message.reply_text("❌ Лимит 5 сигналов. 💎 Premium — без лимита")
+            return
+# ========== ДОГОН ==========
 async def send_dogon():
     global current_signal
 
-    if not current_signal or not current_signal.active:
-        return
+        user_signals[user_id]["count"] += 1
+    current_signal.dogon += 1
 
-    current_signal.dogon_step += 1
+    text = generate_signal()
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=text
+    )
 
-    if current_signal.dogon_step > 3:
-        await bot.send_message(
-            chat_id=ADMIN_ID,
-            text=f"❌ Минус по {current_signal.pair}. 3 догона не отработали."
-        )
+# ========== PREMIUM ==========
+async def buy_premium_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if current_signal.dogon > 3:
+        await bot.send_message(ADMIN_ID, "❌ Минус. 3 догона не сработали.")
         current_signal.active = False
         return
 
-    signal_type = "ВЫШЕ" if current_signal.direction == "UP" else "НИЖЕ"
-    photo = PHOTO_UP if current_signal.direction == "UP" else PHOTO_DOWN
-
     text = (
-        f"🔥 ДОГОН {current_signal.dogon_step}/3\n"
-        f"📊 Пара: {current_signal.pair}\n"
-        f"📌 Тип: {signal_type}\n"
-        f"💰 Уровень: {current_signal.level}\n"
+        "💎 PREMIUM ДОСТУП\n\n"
+        "Чтобы оформить Premium, перейди в наш официальный канал:\n"
+        "👉 https://t.me/nejim_signals\n\n"
+        "В канале есть вся информация, условия и поддержка."
+        f"🔥 ДОГОН {current_signal.dogon}/3\n"
+        f"Пара: {current_signal.pair}\n"
+        f"Тип: {'ВЫШЕ' if current_signal.direction=='UP' else 'НИЖЕ'}\n"
+        f"Уровень: {current_signal.level}\n"
     )
 
-    try:
-        await bot.send_photo(chat_id=ADMIN_ID, photo=photo, caption=text)
-    except:
-        await bot.send_message(chat_id=ADMIN_ID, text=text)
+    keyboard = [
+        [InlineKeyboardButton("🔥 Открыть Premium канал", url="https://t.me/nejim_signals")]
+    ]
+    await bot.send_message(ADMIN_ID, text)
 
-# ================== ПРОВЕРКА WIN/LOSS ==================
-
+    await query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+# ========== ПРОВЕРКА ==========
 async def check_result():
     global current_signal
 
+# ========== СТАТИСТИКА ==========
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ Нет доступа")
     if not current_signal or not current_signal.active:
         return
 
-    price = await get_price(current_signal.pair)
-    if price is None:
-        return
+    total_users = len(known_users)
+    total_premium = len(premium_users)
 
-    win = False
+    today = date.today()
+    total_signals_today = sum(
+        data["count"] for data in user_signals.values() if data["date"] == today
+    )
 
-    if current_signal.direction == "UP" and price > current_signal.level:
-        win = True
-    elif current_signal.direction == "DOWN" and price < current_signal.level:
-        win = True
+    text = (
+        "📊 Статистика\n\n"
+        f"👥 Пользователей: {total_users}\n"
+        f"💎 Premium: {total_premium}\n"
+        f"📨 Сигналов сегодня: {total_signals_today}"
+    )
+    # завтра заменим на реальную проверку
+    await send_dogon()
 
-    if win:
-        await bot.send_message(
-            chat_id=ADMIN_ID,
-            text=f"✅ WIN по {current_signal.pair} (догон {current_signal.dogon_step}/3)"
-        )
-        current_signal.active = False
-    else:
-        await send_dogon()
+    await update.message.reply_text(text)
+# ========== МОНИТОРИНГ ==========
+async def monitor():
+    await bot.send_message(ADMIN_ID, "🚀 Уровневой бот запущен 24/7")
 
-# ================== МОНИТОРИНГ УРОВНЕЙ ==================
-
-async def monitor_levels():
+# ========== АВТОСИГНАЛЫ 24/7 ==========
+async def auto_signals(app):
+    await asyncio.sleep(5)
     global current_signal
-
-    await bot.send_message(chat_id=ADMIN_ID, text="🚀 Бот запущен.")
 
     while True:
         try:
-            for pair in PAIRS:
-                levels = LEVELS.get(pair)
-                if not levels:
-                    continue
+            text = generate_signal()
 
-                price = await get_price(pair)
-                print(f"Цена {pair}: {price}")
+            await app.bot.send_message(
+                chat_id=CHANNEL_USERNAME,
+                text=text,
+                disable_notification=False
+            )
 
-                if price is None:
-                    continue
-
-                max_l = levels["MAX"]
-                min_l = levels["MIN"]
-
-                if not current_signal or not current_signal.active:
-
-                    if price >= max_l:
-                        await send_signal(pair, "DOWN", max_l)
-
-                    elif price <= min_l:
-                        await send_signal(pair, "UP", min_l)
-
-                else:
-                    if datetime.utcnow() - current_signal.entry_time >= timedelta(seconds=DOGON_DELAY):
-                        current_signal.entry_time = datetime.utcnow()
-                        await check_result()
-
-            await asyncio.sleep(CHECK_INTERVAL)
+            print("Автосигнал отправлен!")
 
         except Exception as e:
-            logger.error(f"Ошибка: {e}")
-            await asyncio.sleep(CHECK_INTERVAL)
+            logger.error(f"Auto-signal error: {e}")
 
-# ================== ЗАПУСК ==================
+        await asyncio.sleep(AUTO_SIGNAL_INTERVAL)
 
-async def main():
-    print("Запуск TradingView...")
-    await start_tradingview()
+# ========== MAIN ==========
+def main():
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    print("Запуск мониторинга уровней...")
-    await monitor_levels()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("stats", stats))
+
+    app.add_handler(CallbackQueryHandler(signal, pattern="^signal$"))
+    app.add_handler(CallbackQueryHandler(buy_premium_callback, pattern="^buy_premium$"))
+
+    async def on_start(app):
+        asyncio.create_task(auto_signals(app))
+
+    app.post_init = on_start
+
+    print("🚀 BOT FULL POWER STARTED")
+    app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
 
+        for pair in PAIRS:
+            price = await get_price(pair)
+            max_l = LEVELS[pair]["MAX"]
+            min_l = LEVELS[pair]["MIN"]
+
+            if not current_signal or not current_signal.active:
+                if price >= max_l:
+                    await send_signal(pair, "DOWN", max_l)
+                elif price <= min_l:
+                    await send_signal(pair, "UP", min_l)
+            else:
+                if datetime.utcnow() - current_signal.entry_time >= timedelta(seconds=DOGON_DELAY):
+                    current_signal.entry_time = datetime.utcnow()
+                    await check_result()
+
+        await asyncio.sleep(CHECK_INTERVAL)
+
+asyncio.run(monitor())
 
 
 
