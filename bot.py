@@ -8,7 +8,7 @@ from tradingview_ws import TradingViewClient  # ← вот сюда
 
 # ================== НАСТРОЙКИ ==================
 
-TELEGRAM_TOKEN = "7981684997:AAEKMuYLDKYIxenSZgSJ39mfwAJPOLS2_fY"
+TELEGRAM_TOKEN = "7981684997:AAFMrrmmiAY9gTeH1zWoq_A0FX19cCugLKw"
 ADMIN_ID = 8039171205
 
 CHECK_INTERVAL = 5
