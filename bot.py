@@ -1,10 +1,11 @@
+
 import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from telegram import Bot
 
-from tradingview_ws import TradingViewClient  # ← вот сюда
+from tradingview_ws import TradingViewClient
 
 # ================== НАСТРОЙКИ ==================
 
@@ -17,7 +18,7 @@ DOGON_DELAY = 300
 PHOTO_UP = "FILE_ID_VYSHE"
 PHOTO_DOWN = "FILE_ID_NIZHE"
 
-# ================== СПИСОК 25 ПАР ==================
+# ================== СПИСОК ПАР ==================
 
 PAIRS = [
     "AUDCAD", "EURUSD", "USDCHF", "CADJPY", "CHFJPY",
@@ -67,15 +68,22 @@ logger = logging.getLogger(__name__)
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# ================== ПОЛУЧЕНИЕ ЦЕНЫ ==================
-# СЮДА ТЫ ВСТАВИШЬ TRADINGVIEW
+# ================== TRADINGVIEW КЛИЕНТЫ ==================
+
+clients = {}
+
+async def start_tradingview():
+    print("Запуск TradingView...")
+    for pair in PAIRS:
+        client = TradingViewClient(pair)
+        clients[pair] = client
+        asyncio.create_task(client.connect())
 
 async def get_price(pair: str) -> Optional[float]:
-    levels = LEVELS.get(pair)
-    if not levels:
-        return None
-    return round((levels["MAX"] + levels["MIN"]) / 2, 5)
-
+    client = clients.get(pair)
+    if client:
+        return client.get_price()
+    return None
 
 # ================== СТРУКТУРА СИГНАЛА ==================
 
@@ -89,7 +97,6 @@ class Signal:
         self.entry_time = datetime.utcnow()
 
 current_signal: Optional[Signal] = None
-
 
 # ================== ОТПРАВКА СИГНАЛА ==================
 
@@ -120,7 +127,6 @@ async def send_signal(pair: str, direction: str, level: float):
             await bot.send_message(chat_id=ADMIN_ID, text=text)
     except:
         await bot.send_message(chat_id=ADMIN_ID, text=text)
-
 
 # ================== ДОГОН ==================
 
@@ -155,7 +161,6 @@ async def send_dogon():
     except:
         await bot.send_message(chat_id=ADMIN_ID, text=text)
 
-
 # ================== ПРОВЕРКА WIN/LOSS ==================
 
 async def check_result():
@@ -183,7 +188,6 @@ async def check_result():
         current_signal.active = False
     else:
         await send_dogon()
-
 
 # ================== МОНИТОРИНГ УРОВНЕЙ ==================
 
@@ -227,18 +231,17 @@ async def monitor_levels():
             logger.error(f"Ошибка: {e}")
             await asyncio.sleep(CHECK_INTERVAL)
 
-
 # ================== ЗАПУСК ==================
 
 async def main():
-    print("Запуск TradingView...")  # ← добавь
+    print("Запуск TradingView...")
     await start_tradingview()
 
-    print("Запуск мониторинга уровней...")  # ← добавь
+    print("Запуск мониторинга уровней...")
     await monitor_levels()
-
-
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
 
