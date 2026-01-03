@@ -30,7 +30,9 @@ class TradingViewClient:
                     if "lp" in str(data):
                         try:
                             self.price = float(
-                                str(data).split("lp")[1].split(":")[1].split(",")[0]
+    str(data).split("lp")[1].split(":")[1].split(",")[0]
+)
+
                             )
                         except:
                             pass
