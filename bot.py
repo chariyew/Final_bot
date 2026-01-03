@@ -1,15 +1,35 @@
 
 import asyncio
-import logging
-from datetime import datetime, timedelta
-from typing import Optional
-from telegram import Bot
+import json
+import websockets
 
-from tradingview_ws import TradingViewClient
+class TradingViewClient:
+    def __init__(self, symbol):
+        self.symbol = symbol
+        self.price = None
+
+    async def connect(self):
+        url = "wss://data.tradingview.com/socket.io/websocket"
+        async with websockets.connect(url) as ws:
+            session = "qs_" + self.symbol.replace("/", "_")
+
+            await ws.send(json.dumps([
+                1,
+                "quote_add_symbols",
+                {"symbols": [self.symbol], "session": session}
+            ]))
+
+            while True:
+                msg = await ws.recv()
+                # тут парсишь цену и пишешь в self.price
+                ...
+    def get_price(self):
+        return self.price
+
 
 # ================== НАСТРОЙКИ ==================
 
-TELEGRAM_TOKEN = "7981684997:AAFMrrmmiAY9gTeH1zWoq_A0FX19cCugLKw"
+TELEGRAM_TOKEN = ""
 ADMIN_ID = 8039171205
 
 CHECK_INTERVAL = 5
