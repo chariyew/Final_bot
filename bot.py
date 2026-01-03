@@ -19,8 +19,17 @@ class TradingViewClient:
                 {"symbols": [self.symbol], "session": session}
             ]))
 
-            while True:
-                msg = await ...
+            while
+    msg = ...
+    try
+    except
+    if data list
+        if "lp"
+            try
+                self.price
+            except
+    await sleep
+
 
                 try:
                     data = json.loads(msg)
