@@ -20,6 +20,7 @@ class TradingViewClient:
 
             while True:
                 msg = await ws.recv()
+
                 try:
                     data = json.loads(msg)
                 except:
@@ -28,7 +29,9 @@ class TradingViewClient:
                 if isinstance(data, list) and len(data) > 2:
                     if "lp" in str(data):
                         try:
-                            self.price = float(str(data).split("lp")[1].split(":")[1].split(",")[0])
+                            self.price = float(
+                                str(data).split("lp")[1].split(":")[1].split(",")[0]
+                            )
                         except:
                             pass
 
@@ -36,4 +39,6 @@ class TradingViewClient:
 
     def get_price(self):
         return self.price
+
+
 
