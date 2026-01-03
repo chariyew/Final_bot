@@ -200,6 +200,8 @@ async def monitor_levels():
                     continue
 
                 price = await get_price(pair)
+                print(f"Цена {pair}: {price}")
+
                 if price is None:
                     continue
 
