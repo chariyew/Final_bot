@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 from telegram import Bot
 
+from tradingview_ws import TradingViewClient  # ← вот сюда
+
 # ================== НАСТРОЙКИ ==================
 
 TELEGRAM_TOKEN = "7981684997:AAEKMuYLDKYIxenSZgSJ39mfwAJPOLS2_fY"
