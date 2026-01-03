@@ -226,12 +226,10 @@ async def monitor_levels():
 
 # ================== ЗАПУСК ==================
 
-async def test_price():
+async def main():
     await start_tradingview()
-    await asyncio.sleep(10)
-    price = await get_price("EURUSD")
-    print(f"🔥 Цена EURUSD: {price}")
+    await monitor_levels()
 
-asyncio.run(test_price())
-
+if __name__ == "__main__":
+    asyncio.run(main())
 
