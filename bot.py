@@ -232,5 +232,6 @@ async def test_price():
     price = await get_price("EURUSD")
     print(f"🔥 Цена EURUSD: {price}")
 
-# asyncio.run(test_price())
+asyncio.run(test_price())
+
 
