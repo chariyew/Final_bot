@@ -231,8 +231,13 @@ async def monitor_levels():
 # ================== ЗАПУСК ==================
 
 async def main():
+    print("Запуск TradingView...")  # ← добавь
     await start_tradingview()
+
+    print("Запуск мониторинга уровней...")  # ← добавь
     await monitor_levels()
+
+
 
 if __name__ == "__main__":
     asyncio.run(main())
