@@ -19,21 +19,25 @@ class TradingViewClient:
                 {"symbols": [self.symbol], "session": session}
             ]))
 
-            while
-    msg = ...
-    try
-    except
-    if data list
-        if "lp"
-            try
-                self.price
-            except
-    await sleep
+            while True:
+    msg = await ws.recv()
 
+    try:
+        data = json.loads(msg)
+    except:
+        continue
 
-                try:
-                    data = json.loads(msg)
-                except:
+    if isinstance(data, list) and len(data) > 2:
+        if "lp" in str(data):
+            try:
+                self.price = float(
+                    str(data).split("lp")[1].split(":")[1].split(",")[0]
+                )
+            except:
+                pass
+
+    await asyncio.sleep(0.01)
+
                     continue
 
                 if isinstance(data, list) and len(data) > 2:
