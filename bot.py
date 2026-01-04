@@ -4,7 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # ================= НАСТРОЙКИ =================
-TOKEN = "PASTE_YOUR_REAL_TOKEN_HERE"
+TOKEN = "7981684997:AAFMrrmmiAY9gTeH1zWoq_A0FX19cCugLKw"
 
 FREE_LIMIT = 5
 
