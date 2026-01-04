@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 # ================= НАСТРОЙКИ =================
-TELEGRAM_TOKEN = "https:nejim_signals"
+TELEGRAM_TOKEN = "7981684997:AAG2T3gCoJbfE2X6qDd2S0AzE53C65MKCsg"
 CHANNEL_CHAT_ID = -1003531475408   # твой канал
 ADMIN_ID = 8039171205
 
