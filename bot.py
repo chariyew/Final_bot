@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 # ========= НАСТРОЙКИ =========
-TELEGRAM_TOKEN = "7981684997:AAFMrrmmiAY9gTeH1zWoq_A0FX19cCugLKw"
+TELEGRAM_TOKEN = "7981684997:AAG2T3gCoJbfE2X6qDd2S0AzE53C65MKCsg"
 CHANNEL_ID = -1003531475408   # твой канал
 FREE_LIMIT = 5
 AUTO_SIGNAL_INTERVAL = 300  # 5 минут
