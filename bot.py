@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 # ================= НАСТРОЙКИ =================
-TELEGRAM_TOKEN = "7981684997:AAG2T3gCoJbfE2X6qDd2S0AzE53C65MKCsg"
+TELEGRAM_TOKEN = "7981684997:AAHSFtq1CRc__show28Vv9ZY0-ljDFNRwyc"
 CHANNEL_CHAT_ID = -1003531475408
 ADMIN_ID = 8039171205
 
